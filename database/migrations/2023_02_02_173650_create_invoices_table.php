@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('customer_email');
             $table->string('status');
             $table->timestamps();
+            $table->unique(['customer_name', 'customer_email'], 'inv_customer_name_customer_email_unique');
         });
     }
 

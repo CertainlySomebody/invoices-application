@@ -22,6 +22,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('invoice_id')->references('id')->on('invoices');
+            $table->unique(['invoice_id', 'name'], 'inv_lines_invoice_id_name_unique');
         });
     }
 
