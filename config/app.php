@@ -120,4 +120,9 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
+
+    'provides' => [
+        Modules\Invoices\Infrastructure\Providers\InvoicesServiceProvider::class,
+        Modules\Notifications\Infrastructure\Providers\NotificationServiceProvider::class
+    ]
 ];

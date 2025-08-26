@@ -8,7 +8,10 @@ use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\ServiceProvider;
 use Modules\Notifications\Api\NotificationFacadeInterface;
 use Modules\Notifications\Application\Facades\NotificationFacade;
+use Modules\Notifications\Application\Interfaces\NotificationSenderInterface;
+use Modules\Notifications\Infrastructure\Console\Commands\SendNotificationsCommand;
 use Modules\Notifications\Infrastructure\Drivers\DummyDriver;
+use Modules\Notifications\Infrastucture\Senders\DummyNotificationSender;
 
 final class NotificationServiceProvider extends ServiceProvider implements DeferrableProvider
 {
@@ -27,5 +30,14 @@ final class NotificationServiceProvider extends ServiceProvider implements Defer
         return [
             NotificationFacadeInterface::class,
         ];
+    }
+
+    public function boot(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                SendNotificationsCommand::class
+            ]);
+        }
     }
 }
