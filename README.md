@@ -1,55 +1,124 @@
-## Invoice Structure:
+# Invoice & Notifications System
+This project is a implementation of an invoice management system built in **Domain-Driven Design**.
 
-The invoice should contain the following fields:
-* **Invoice ID**: Auto-generated during creation.
-* **Invoice Status**: Possible states include `draft,` `sending,` and `sent-to-client`.
-* **Customer Name** 
-* **Customer Email** 
-* **Invoice Product Lines**, each with:
-  * **Product Name**
-  * **Quantity**: Integer, must be positive. 
-  * **Unit Price**: Integer, must be positive.
-  * **Total Unit Price**: Calculated as Quantity x Unit Price. 
-* **Total Price**: Sum of all Total Unit Prices.
+## Main Features
+- Create invoices (`Draft` status) with or w/o product lines
+- Send invoices to customers (email notification)
+- Update invoice Status (`Draft -> Sending -> SentToClient`)
 
-## Required Endpoints:
+## Invoice Structure
+- `id` - UUID (auto-generated)
+- `customer_name`
+- `customer_email`
+- `status` - `draft|sending|sent-to-client`
+- `product_lines[]`
+    - `product_name`
+    - `quantity`
+    - `price`
+    - `total_unit_price = quantity x price`
 
-1. **View Invoice**: Retrieve invoice data in the format above.
-2. **Create Invoice**: Initialize a new invoice.
-3. **Send Invoice**: Handle the sending of an invoice.
+## Status Workflow
+- **Draft** - newly created invoice, editable
+- **Sending** - invoice is being sent
+- **SentToClient** - invoice was sent via email
 
-## Functional Requirements:
+## Api Endpoints
+`POST /invoices`
 
-### Invoice Criteria:
+Create new invoice.
 
-* An invoice can only be created in `draft` status. 
-* An invoice can be created with empty product lines. 
-* An invoice can only be sent if it is in `draft` status. 
-* An invoice can only be marked as `sent-to-client` if its current status is `sending`. 
-* To be sent, an invoice must contain product lines with both quantity and unit price as positive integers greater than **zero**.
+Request body: (example)
+```json
+{
+  "customer_name": "John Doe",
+  "customer_email": "john.doe@example.com",
+  "product_lines": [
+    {
+      "product_name": "Laptop",
+      "quantity": 1,
+      "price": 3500
+    },
+    {
+      "product_name": "Wireless Mouse",
+      "quantity": 2,
+      "price": 120
+    }
+  ]
+}
+```
 
-### Invoice Sending Workflow:
+`GET /invoices/{id}`
+Retrieve invoice details.
 
-* **Send an email notification** to the customer using the `NotificationFacade`. 
-  * The email's subject and message may be hardcoded or customized as needed. 
-  * Change the **Invoice Status** to `sending` after sending the notification.
+Response:
+```json
+{
+  "id": "uuid",
+  "customer_name": "John Doe",
+  "customer_email": "john@example.com",
+  "status": "draft",
+  "product_lines": [...],
+  "total_price": 5200
+}
+```
 
-### Delivery:
+`POST /invoices/{id}/send`
+Send an invoice (email to the customer)
 
-* Upon successful delivery by the Dummy notification provider:
-  * The **Notification Module** triggers a `ResourceDeliveredEvent` via webhook.
-  * The **Invoice Module** listens for and captures this event.
-  * The **Invoice Status** is updated from `sending` to `sent-to-client`.
-  * **Note**: This transition requires that the invoice is currently in the `sending` status.
+Response: JSON invoice (status `sent-to-client`).
 
-## Technical Requirements:
+## Notifications
+- Notifications are sent using **NotificationFacade**:
+    - DummyDriver - SES Amazon implemented
+- `ResourceDeliveredEvent` may be emitted by a driver and consumed by invoice module.
 
-* **Preferred Approach**: Domain-Driven Design (DDD) is preferred for this project. If you have experience with DDD, please feel free to apply this methodology. However, if you are more comfortable with another approach, you may choose an alternative structure.
-* **Alternative Submission**: If you have a different, comparable project or task that showcases your skills, you may submit that instead of creating this task.
-* **Unit Tests**: Core invoice logic should be unit tested. Testing the returned values from endpoints is not required.
-* **Documentation**: Candidates are encouraged to document their decisions and reasoning in comments or a README file, explaining why specific implementations or structures were chosen.
+## Technical Details
+- Language: PHP 8.1+, Laravel 10
+- Database: Eloquent ORM + migrations
+- UUIDs: Generated with `Str::uuid()`
+- Queues: Laravel Queue (database/redis)
+- Worker: `php artisan queue:work`
 
-## Setup Instructions:
+## Database Schema
+- invoices
+    - id (uuid, PK)
+    - customer_name
+    - customer_email
+    - status
+- invoice_product_lines
+    - id (uuid, PK)
+    - invoice_id (FK)
+    - name
+    - quantity
+    - price
 
-* Start the project by running `./start.sh`.
-* To access the container environment, use: `docker compose exec app bash`.
+## Setup instructions
+1. Install Dependencies
+```bash
+composer install
+```
+
+2. Run Migrations
+```bash
+php artisan migrate
+```
+3. Configure .env's
+```bash
+MAIL_MAILER=smtp
+MAIL_HOST=<aws smtp endpoint>
+MAIL_PORT=587
+MAIL_ENCRYPTION=tls
+MAIL_USERNAME=<aws login>
+MAIL_PASSWORD=<aws password>
+MAIL_FROM_ADDRESS=<from which mail emails will be sent>
+MAIL_FROM_NAME="Invoices" 
+```
+
+## Summary
+This project demonstrates:
+- `DDD structure` within Laravel (Domain/Application/Infrastructure/Presentation)
+- Invoice creation, product line handling, and price calculation
+- Sending invoices and updating statuses
+- Integration with a notification system through Mailer (AWS SES)
+- Asynchronous processing with Laravel Queues and Events
+
